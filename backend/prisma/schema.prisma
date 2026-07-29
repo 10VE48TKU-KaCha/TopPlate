@@ -1,0 +1,188 @@
+generator client {
+  provider  = "prisma-client-py"
+  interface = "asyncio"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  STORE_ADMIN
+  EMPLOYEE
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  COOKING
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  OUT_OF_SERVICE
+}
+
+model Store {
+  id             String          @id @default(uuid())
+  name           String
+  slug           String          @unique
+  address        String?
+  phone          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  users          User[]
+  categories     Category[]
+  menuItems      MenuItem[]
+  inventoryItems InventoryItem[]
+  tables         Table[]
+  orders         Order[]
+  orderItems     OrderItem[]
+
+  @@map("stores")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         Role     @default(EMPLOYEE)
+  storeId      String?
+  store        Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([storeId])
+  @@map("users")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  storeId     String
+  store       Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  menuItems   MenuItem[]
+
+  @@index([storeId])
+  @@map("categories")
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  recipes    MenuItemRecipe[]
+  orderItems OrderItem[]
+
+  @@index([storeId])
+  @@index([categoryId])
+  @@map("menu_items")
+}
+
+model InventoryItem {
+  id           String   @id @default(uuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name         String
+  currentStock Float
+  minStock     Float
+  unit         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  recipes MenuItemRecipe[]
+
+  @@index([storeId])
+  @@map("inventory_items")
+}
+
+model MenuItemRecipe {
+  id               String        @id @default(uuid())
+  menuItemId       String
+  menuItem         MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantityRequired Float
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([menuItemId, inventoryItemId])
+  @@map("menu_item_recipes")
+}
+
+model Table {
+  id          String      @id @default(uuid())
+  storeId     String
+  store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tableNumber String
+  capacity    Int         @default(4)
+  status      TableStatus @default(AVAILABLE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  orders Order[]
+
+  @@index([storeId])
+  @@unique([storeId, tableNumber])
+  @@map("tables")
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  storeId       String
+  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tableId       String?
+  table         Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  status        OrderStatus @default(PENDING)
+  totalAmount   Float
+  customerNotes String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([storeId])
+  @@index([tableId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  quantity   Int
+  unitPrice  Float
+  subtotal   Float
+  createdAt  DateTime @default(now())
+
+  @@index([storeId])
+  @@index([orderId])
+  @@map("order_items")
+}

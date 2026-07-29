@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY prisma ./prisma
+RUN prisma generate
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "prisma db push && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
