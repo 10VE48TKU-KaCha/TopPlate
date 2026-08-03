@@ -168,6 +168,14 @@ Upon starting the backend, an initial SuperAdmin account is automatically seeded
 - **Email**: `superadmin@topplate.com`
 - **Password**: `SuperAdminPass123!`
 
+### 4. Demo Store Credentials (If Created):
+- **Store Admin**: 
+  - **Email**: `somsi@gmail.com`
+  - **Password**: `123456`
+- **Employee**:
+  - **Email**: `somchai@gmail.com`
+  - **Password**: `1234`
+
 ---
 
 ## ⚡ Key Feature Workflows
