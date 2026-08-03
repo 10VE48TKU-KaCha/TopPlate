@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import connect_db, disconnect_db, db
-from app.routers import auth, stores, menu, inventory, orders, tables
+from app.routers import auth, stores, menu, inventory, orders, tables, users
 from app.security.jwt import get_password_hash
 
 @asynccontextmanager
@@ -53,6 +53,7 @@ app.include_router(menu.router, prefix=settings.API_V1_STR)
 app.include_router(inventory.router, prefix=settings.API_V1_STR)
 app.include_router(orders.router, prefix=settings.API_V1_STR)
 app.include_router(tables.router, prefix=settings.API_V1_STR)
+app.include_router(users.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():
