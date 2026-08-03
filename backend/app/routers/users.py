@@ -47,11 +47,11 @@ async def update_user(
     if current_user.role == "STORE_ADMIN":
         if user.storeId != current_user.store_id:
             raise HTTPException(status_code=403, detail="Not authorized to edit this user")
-        # Store admin cannot change a user's storeId to something else, or make them a SUPER_ADMIN
+        # Store admin cannot change a user's storeId to something else, or make them a SUPER_ADMIN/STORE_ADMIN
         if req.storeId and req.storeId != current_user.store_id:
             raise HTTPException(status_code=403, detail="Cannot move user to another store")
-        if req.role == "SUPER_ADMIN":
-            raise HTTPException(status_code=403, detail="Cannot grant SUPER_ADMIN role")
+        if req.role and req.role != "EMPLOYEE":
+            raise HTTPException(status_code=403, detail="Store Admin can only assign Employee role")
             
     update_data = {}
     if req.fullName is not None:

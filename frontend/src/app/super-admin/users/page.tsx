@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
-import { Users, Edit2, Trash2, Shield, Store, User, Plus } from 'lucide-react';
+import { Users, Edit2, Trash2, Shield, Store as StoreIcon, User, Plus } from 'lucide-react';
 
 interface UserModel {
   id: string;
@@ -12,8 +12,15 @@ interface UserModel {
   storeId: string | null;
 }
 
+interface StoreModel {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export default function SuperAdminUsersPage() {
   const [users, setUsers] = useState<UserModel[]>([]);
+  const [stores, setStores] = useState<StoreModel[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit State
@@ -27,7 +34,7 @@ export default function SuperAdminUsersPage() {
   const [regFullName, setRegFullName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [regRole, setRegRole] = useState('EMPLOYEE');
+  const [regRole, setRegRole] = useState('STORE_ADMIN');
   const [regStoreId, setRegStoreId] = useState('');
 
   const [message, setMessage] = useState<string | null>(null);
@@ -45,8 +52,18 @@ export default function SuperAdminUsersPage() {
     }
   };
 
+  const fetchStores = async () => {
+    try {
+      const data = await apiFetch<StoreModel[]>('/stores');
+      setStores(data);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchStores();
   }, []);
 
   const handleDelete = async (userId: string) => {
@@ -108,7 +125,7 @@ export default function SuperAdminUsersPage() {
       setRegFullName('');
       setRegEmail('');
       setRegPassword('');
-      setRegRole('EMPLOYEE');
+      setRegRole('STORE_ADMIN');
       setRegStoreId('');
       fetchUsers();
     } catch (err: any) {
@@ -123,7 +140,7 @@ export default function SuperAdminUsersPage() {
       case 'SUPER_ADMIN':
         return <span className="bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"><Shield className="h-3 w-3" /> SUPER ADMIN</span>;
       case 'STORE_ADMIN':
-        return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"><Store className="h-3 w-3" /> STORE ADMIN</span>;
+        return <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"><StoreIcon className="h-3 w-3" /> STORE ADMIN</span>;
       default:
         return <span className="bg-slate-700/50 text-slate-300 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"><User className="h-3 w-3" /> EMPLOYEE</span>;
     }
@@ -169,7 +186,7 @@ export default function SuperAdminUsersPage() {
                   <td className="px-6 py-4">
                     {u.storeId ? (
                       <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">
-                        {u.storeId.substring(0, 8)}...
+                        {stores.find(s => s.id === u.storeId)?.name || u.storeId.substring(0, 8) + '...'}
                       </span>
                     ) : (
                       <span className="text-xs text-slate-500 italic">None (Global)</span>
@@ -236,14 +253,17 @@ export default function SuperAdminUsersPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Store ID (Optional)</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Store</label>
+                <select
                   value={editStoreId}
                   onChange={(e) => setEditStoreId(e.target.value)}
-                  placeholder="Leave empty for global users"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
-                />
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
+                >
+                  <option value="">None (Global)</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
                 <button
@@ -314,21 +334,27 @@ export default function SuperAdminUsersPage() {
                   onChange={(e) => setRegRole(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
                 >
-                  <option value="EMPLOYEE">Employee</option>
                   <option value="STORE_ADMIN">Store Admin</option>
+                  <option value="EMPLOYEE">Employee</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Store ID (Optional)</label>
-                <input
-                  type="text"
-                  value={regStoreId}
-                  onChange={(e) => setRegStoreId(e.target.value)}
-                  placeholder="Leave empty for global users"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500 font-mono"
-                />
-              </div>
+              {regRole !== 'SUPER_ADMIN' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Store {regRole === 'STORE_ADMIN' ? '(Required)' : '(Optional)'}</label>
+                  <select
+                    value={regStoreId}
+                    onChange={(e) => setRegStoreId(e.target.value)}
+                    required={regRole === 'STORE_ADMIN'}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="">Select a store...</option>
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
                 <button
                   type="button"

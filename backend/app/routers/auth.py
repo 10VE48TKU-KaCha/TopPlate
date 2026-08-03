@@ -46,10 +46,18 @@ async def register(
             detail="User with this email already exists"
         )
     
-    # StoreAdmin can only register staff for their own store
-    store_id_to_assign = req.storeId
+    # Role hierarchy enforcement
     if current_user.role == "STORE_ADMIN":
+        # STORE_ADMIN can only create EMPLOYEE accounts for their own store
+        if req.role != "EMPLOYEE":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Store Admin can only create Employee accounts"
+            )
         store_id_to_assign = current_user.store_id
+    else:
+        # SUPER_ADMIN can create any role
+        store_id_to_assign = req.storeId
 
     hashed_pw = get_password_hash(req.password)
     user = await db.user.create(
