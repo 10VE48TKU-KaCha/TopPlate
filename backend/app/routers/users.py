@@ -15,7 +15,10 @@ async def list_users(
     where_clause = {}
     
     if current_user.role == "STORE_ADMIN":
+        if not current_user.store_id:
+            return []
         where_clause["storeId"] = current_user.store_id
+        where_clause["role"] = {"in": ["EMPLOYEE", "STORE_ADMIN"]}
     elif store_id:
         where_clause["storeId"] = store_id
 
