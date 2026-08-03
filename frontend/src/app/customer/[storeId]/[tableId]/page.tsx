@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import { MenuItem } from '@/types';
-import { Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, ArrowRight, Search, X } from 'lucide-react';
 
 interface CartItem {
   item: MenuItem;
@@ -22,6 +22,7 @@ export default function CustomerMenuPage({
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [notes, setNotes] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function loadPublicMenu() {
@@ -84,24 +85,52 @@ export default function CustomerMenuPage({
     }
   };
 
+  const filteredMenuItems = menuItems.filter((item) =>
+    searchQuery.trim() === '' ||
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div className="space-y-6 pb-24">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-emerald-900/60 to-teal-900/60 p-4 rounded-2xl border border-emerald-500/20 space-y-1">
-        <h2 className="font-extrabold text-white text-lg">Welcome to Our Table Menu</h2>
-        <p className="text-xs text-slate-300">Tap items to add to your order. Fast direct kitchen delivery.</p>
+      <div className="bg-gradient-to-r from-emerald-900/60 to-teal-900/60 p-4 rounded-2xl border border-emerald-500/20 space-y-3">
+        <div>
+          <h2 className="font-extrabold text-white text-lg">Welcome to Our Table Menu</h2>
+          <p className="text-xs text-slate-300">Tap items to add to your order. Fast direct kitchen delivery.</p>
+        </div>
+
+        {/* Search Bar with Icon */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหาเมนูอาหาร / Search dishes..."
+            className="w-full pl-10 pr-10 py-2 bg-slate-950/80 border border-emerald-500/30 rounded-xl text-white text-xs placeholder-slate-400 focus:outline-none focus:border-emerald-400 transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white rounded-md transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dishes List */}
       <div className="space-y-4">
         {loading ? (
           <p className="text-slate-400 text-xs text-center py-6">Loading digital menu...</p>
-        ) : menuItems.length === 0 ? (
+        ) : filteredMenuItems.length === 0 ? (
           <div className="text-center py-8 text-slate-500 text-xs">
-            No active menu items found for this store.
+            {searchQuery ? `ไม่พบเมนูที่ค้นหา "${searchQuery}"` : 'No active menu items found for this store.'}
           </div>
         ) : (
-          menuItems.map((item) => {
+          filteredMenuItems.map((item) => {
             const inCart = cart.find((ci) => ci.item.id === item.id);
             const qty = inCart ? inCart.quantity : 0;
 

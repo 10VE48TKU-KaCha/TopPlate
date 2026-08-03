@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { InventoryItem } from '@/types';
-import { Package, Plus, AlertCircle, RefreshCw } from 'lucide-react';
+import { Package, Plus, AlertCircle, RefreshCw, Search, X } from 'lucide-react';
 
 export default function AdminInventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [name, setName] = useState('');
   const [currentStock, setCurrentStock] = useState('');
@@ -64,6 +65,11 @@ export default function AdminInventoryPage() {
       console.error(err);
     }
   };
+
+  const filteredItems = items.filter((item) =>
+    searchQuery.trim() === '' ||
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-8">
@@ -146,15 +152,39 @@ export default function AdminInventoryPage() {
 
       {/* Inventory table */}
       <div className="glass-panel p-6 rounded-2xl border border-slate-700/50 space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-          <Package className="h-5 w-5 text-emerald-400" />
-          <span>Live Inventory & Stock Levels ({items.length})</span>
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+            <Package className="h-5 w-5 text-emerald-400" />
+            <span>Live Inventory & Stock Levels ({filteredItems.length})</span>
+          </h2>
+
+          {/* Search Bar with Icon */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ค้นหาวัตถุดิบ / Search stock..."
+              className="w-full pl-10 pr-10 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white rounded-md transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
 
         {loading ? (
           <p className="text-slate-400 text-sm">Loading stock levels...</p>
-        ) : items.length === 0 ? (
-          <p className="text-slate-500 text-sm py-4 text-center">No inventory items recorded for this store tenant.</p>
+        ) : filteredItems.length === 0 ? (
+          <p className="text-slate-500 text-sm py-4 text-center">
+            {searchQuery ? `ไม่พบวัตถุดิบที่ค้นหา "${searchQuery}"` : 'No inventory items recorded for this store tenant.'}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -168,7 +198,7 @@ export default function AdminInventoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const isLow = item.currentStock <= item.minStock;
                   return (
                     <tr key={item.id} className="hover:bg-slate-900/40">

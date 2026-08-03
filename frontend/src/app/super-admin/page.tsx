@@ -188,6 +188,16 @@ export default function SuperAdminPage() {
                     <span>Preview QR Link</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('selected_store_id', s.id);
+                      window.location.href = '/admin/dashboard';
+                    }}
+                    className="text-purple-400 hover:text-purple-300 flex items-center space-x-1 font-medium bg-purple-500/10 px-2 py-1 rounded transition-colors hover:bg-purple-500/20"
+                  >
+                    <span>Manage Store</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
             ))}

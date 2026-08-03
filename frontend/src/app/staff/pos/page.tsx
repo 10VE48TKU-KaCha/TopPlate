@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { MenuItem, Category, Table } from '@/types';
-import { ShoppingBag, Plus, Minus, Trash2, CheckCircle2, Utensils } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, CheckCircle2, Utensils, Search, X } from 'lucide-react';
 
 interface CartItem {
   menuItem: MenuItem;
@@ -15,6 +15,7 @@ export default function StaffPOSPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -98,15 +99,39 @@ export default function StaffPOSPage() {
     }
   };
 
-  const filteredItems =
-    activeCategory === 'ALL'
-      ? menuItems
-      : menuItems.filter((i) => i.categoryId === activeCategory);
+  const filteredItems = menuItems.filter((i) => {
+    const matchesCategory = activeCategory === 'ALL' || i.categoryId === activeCategory;
+    const matchesSearch =
+      searchQuery.trim() === '' ||
+      i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (i.description && i.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Menu Catalog (2 cols) */}
       <div className="lg:col-span-2 space-y-4">
+        {/* Search Bar with Icon */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ค้นหาเมนู / Search menu items..."
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-900/90 border border-slate-800 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white rounded-md transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* Category Pills */}
         <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
           <button

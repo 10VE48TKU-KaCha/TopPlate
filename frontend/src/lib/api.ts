@@ -20,6 +20,11 @@ export async function apiFetch<T>(
 
   if (selectedStoreId) {
     headers['X-Store-Id'] = selectedStoreId;
+  } else if (typeof window !== 'undefined') {
+    const localStoreId = localStorage.getItem('selected_store_id');
+    if (localStoreId) {
+      headers['X-Store-Id'] = localStoreId;
+    }
   }
 
   const response = await fetch(`${API_BASE_URL}${API_PREFIX}${endpoint}`, {
