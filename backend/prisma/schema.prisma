@@ -4,15 +4,31 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Enums removed for SQLite compatibility
+enum Role {
+  SUPER_ADMIN
+  STORE_ADMIN
+  EMPLOYEE
+  CUSTOMER
+}
 
-// OrderStatus replaced by String
+enum OrderStatus {
+  PENDING
+  COOKING
+  SERVED
+  COMPLETED
+  CANCELLED
+}
 
-// TableStatus replaced by String
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  OUT_OF_SERVICE
+}
 
 model Store {
   id             String          @id @default(uuid())
@@ -39,7 +55,7 @@ model User {
   email        String   @unique
   passwordHash String
   fullName     String
-  role         String   @default("EMPLOYEE")
+  role         Role     @default(EMPLOYEE)
   storeId      String?
   store        Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
@@ -123,7 +139,7 @@ model Table {
   store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   tableNumber String
   capacity    Int         @default(4)
-  status      String      @default("AVAILABLE")
+  status      TableStatus @default(AVAILABLE)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -140,7 +156,7 @@ model Order {
   store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   tableId       String?
   table         Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
-  status        String      @default("PENDING")
+  status        OrderStatus @default(PENDING)
   totalAmount   Float
   customerNotes String?
   createdAt     DateTime    @default(now())
