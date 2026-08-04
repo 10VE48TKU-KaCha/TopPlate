@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import connect_db, disconnect_db, db
-from app.routers import auth, stores, menu, inventory, orders, tables, users
+from app.routers import auth, stores, menu, inventory, orders, tables, users, reports
 from app.security.jwt import get_password_hash
 
 @asynccontextmanager
