@@ -218,11 +218,23 @@ export default function AdminMenuPage() {
               >
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-white text-sm">{item.name}</h3>
-                  <span className="text-emerald-400 font-bold font-mono text-sm">${item.price.toFixed(2)}</span>
+                  <span className="text-emerald-400 font-bold font-mono text-sm">฿{item.price.toFixed(2)}</span>
                 </div>
                 {item.description && (
                   <p className="text-xs text-slate-400 line-clamp-2">{item.description}</p>
                 )}
+                <div className="pt-2 grid grid-cols-2 gap-2 text-[10px] bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                  <div>
+                    <span className="text-slate-400 block">Recipe Cost (ต้นทุน):</span>
+                    <span className="font-mono font-bold text-amber-400">฿{(item.recipeCost || 0).toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">Margin (กำไร):</span>
+                    <span className={`font-mono font-bold ${(item.profitMargin || 0) >= 50 ? 'text-emerald-400' : (item.profitMargin || 0) >= 20 ? 'text-yellow-400' : 'text-rose-400'}`}>
+                      {(item.profitMargin || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
                 <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-800/80">
                   <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-medium">
                     {categories.find((c) => c.id === item.categoryId)?.name || 'Category'}

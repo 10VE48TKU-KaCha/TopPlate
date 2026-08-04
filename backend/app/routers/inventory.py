@@ -21,7 +21,8 @@ async def list_inventory_items(
             name=item.name,
             currentStock=item.currentStock,
             minStock=item.minStock,
-            unit=item.unit
+            unit=item.unit,
+            unitCost=getattr(item, 'unitCost', 0.0) or 0.0
         )
         for item in items
     ]
@@ -38,7 +39,8 @@ async def create_inventory_item(
             "name": payload.name,
             "currentStock": payload.currentStock,
             "minStock": payload.minStock,
-            "unit": payload.unit
+            "unit": payload.unit,
+            "unitCost": payload.unitCost
         }
     )
     return InventoryItemResponse(
@@ -47,7 +49,8 @@ async def create_inventory_item(
         name=item.name,
         currentStock=item.currentStock,
         minStock=item.minStock,
-        unit=item.unit
+        unit=item.unit,
+        unitCost=item.unitCost
     )
 
 @router.patch("/{item_id}", response_model=InventoryItemResponse)
@@ -75,6 +78,8 @@ async def update_inventory_item(
         update_data["minStock"] = payload.minStock
     if payload.unit is not None:
         update_data["unit"] = payload.unit
+    if payload.unitCost is not None:
+        update_data["unitCost"] = payload.unitCost
 
     updated = await db.inventoryitem.update(
         where={"id": item_id},
@@ -87,5 +92,6 @@ async def update_inventory_item(
         name=updated.name,
         currentStock=updated.currentStock,
         minStock=updated.minStock,
-        unit=updated.unit
+        unit=updated.unit,
+        unitCost=getattr(updated, 'unitCost', 0.0) or 0.0
     )

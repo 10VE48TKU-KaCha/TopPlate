@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { getAuthUser } from '@/lib/auth';
-import { LayoutDashboard, Utensils, Package, Users, Store } from 'lucide-react';
+import { LayoutDashboard, Utensils, Package, Users, Store, BarChart3 } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -36,6 +36,7 @@ export default function AdminLayout({
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Menu Items', href: '/admin/menu', icon: Utensils },
     { name: 'Inventory & Recipes', href: '/admin/inventory', icon: Package },
+    { name: 'Financial Reports', href: '/admin/reports', icon: BarChart3 },
     { name: 'Staff Management', href: '/admin/staff', icon: Users },
   ];
 

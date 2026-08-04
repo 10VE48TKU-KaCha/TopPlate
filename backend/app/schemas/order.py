@@ -20,6 +20,8 @@ class OrderItemResponse(BaseModel):
     menuItemName: Optional[str] = None
     quantity: int
     unitPrice: float
+    unitCost: float = 0.0
+    recipeCost: float = 0.0
     subtotal: float
 
 class OrderResponse(BaseModel):
@@ -29,6 +31,8 @@ class OrderResponse(BaseModel):
     tableNumber: Optional[str] = None
     status: str
     totalAmount: float
+    totalCost: float = 0.0
+    grossProfit: float = 0.0
     customerNotes: Optional[str] = None
     createdAt: datetime
     orderItems: List[OrderItemResponse]

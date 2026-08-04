@@ -11,13 +11,18 @@ async def process_order_creation(store_id: str, payload: OrderCreate) -> OrderRe
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Order must contain at least one item")
 
     total_amount = 0.0
+    total_cost = 0.0
     items_to_create = []
 
     # Fetch menu items and recipes
     for item_req in payload.items:
         menu_item = await db.menuitem.find_first(
             where={"id": item_req.menuItemId, "storeId": store_id},
-            include={"recipes": True}
+            include={
+                "recipes": {
+                    "include": {"inventoryItem": True}
+                }
+            }
         )
         if not menu_item or not menu_item.isAvailable:
             raise HTTPException(
@@ -28,24 +33,34 @@ async def process_order_creation(store_id: str, payload: OrderCreate) -> OrderRe
         subtotal = menu_item.price * item_req.quantity
         total_amount += subtotal
 
-        items_to_create.append({
-            "menu_item": menu_item,
-            "quantity": item_req.quantity,
-            "unitPrice": menu_item.price,
-            "subtotal": subtotal
-        })
-
-        # Automatic Inventory Deduction
+        # Calculate unit cost and recipe cost per dish
+        recipe_cost_per_unit = 0.0
         if menu_item.recipes:
             for recipe in menu_item.recipes:
                 needed_qty = recipe.quantityRequired * item_req.quantity
-                inv_item = await db.inventoryitem.find_unique(where={"id": recipe.inventoryItemId})
+                inv_item = recipe.inventoryItem or await db.inventoryitem.find_unique(where={"id": recipe.inventoryItemId})
                 if inv_item:
+                    unit_cost = getattr(inv_item, 'unitCost', 0.0) or 0.0
+                    recipe_cost_per_unit += recipe.quantityRequired * unit_cost
                     new_stock = max(0.0, inv_item.currentStock - needed_qty)
                     await db.inventoryitem.update(
                         where={"id": inv_item.id},
                         data={"currentStock": new_stock}
                     )
+
+        item_total_recipe_cost = recipe_cost_per_unit * item_req.quantity
+        total_cost += item_total_recipe_cost
+
+        items_to_create.append({
+            "menu_item": menu_item,
+            "quantity": item_req.quantity,
+            "unitPrice": menu_item.price,
+            "unitCost": menu_item.price - recipe_cost_per_unit, # Margin per unit
+            "recipeCost": recipe_cost_per_unit,
+            "subtotal": subtotal
+        })
+
+    gross_profit = total_amount - total_cost
 
     # Create Order
     order = await db.order.create(
@@ -54,6 +69,8 @@ async def process_order_creation(store_id: str, payload: OrderCreate) -> OrderRe
             "tableId": payload.tableId,
             "status": "PENDING",
             "totalAmount": total_amount,
+            "totalCost": total_cost,
+            "grossProfit": gross_profit,
             "customerNotes": payload.customerNotes
         }
     )
@@ -68,6 +85,8 @@ async def process_order_creation(store_id: str, payload: OrderCreate) -> OrderRe
                 "menuItemId": item["menu_item"].id,
                 "quantity": item["quantity"],
                 "unitPrice": item["unitPrice"],
+                "unitCost": item["unitCost"],
+                "recipeCost": item["recipeCost"],
                 "subtotal": item["subtotal"]
             }
         )
@@ -78,6 +97,8 @@ async def process_order_creation(store_id: str, payload: OrderCreate) -> OrderRe
                 menuItemName=item["menu_item"].name,
                 quantity=created_oi.quantity,
                 unitPrice=created_oi.unitPrice,
+                unitCost=getattr(created_oi, 'unitCost', 0.0) or 0.0,
+                recipeCost=getattr(created_oi, 'recipeCost', 0.0) or 0.0,
                 subtotal=created_oi.subtotal
             )
         )
@@ -97,6 +118,8 @@ async def process_order_creation(store_id: str, payload: OrderCreate) -> OrderRe
         tableNumber=table_number,
         status=order.status,
         totalAmount=order.totalAmount,
+        totalCost=getattr(order, 'totalCost', 0.0) or 0.0,
+        grossProfit=getattr(order, 'grossProfit', 0.0) or 0.0,
         customerNotes=order.customerNotes,
         createdAt=order.createdAt,
         orderItems=order_item_responses
@@ -138,6 +161,8 @@ async def get_customer_order_status(order_id: str):
             menuItemName=oi.menuItem.name if oi.menuItem else None,
             quantity=oi.quantity,
             unitPrice=oi.unitPrice,
+            unitCost=getattr(oi, 'unitCost', 0.0) or 0.0,
+            recipeCost=getattr(oi, 'recipeCost', 0.0) or 0.0,
             subtotal=oi.subtotal
         )
         for oi in order.orderItems
@@ -150,6 +175,8 @@ async def get_customer_order_status(order_id: str):
         tableNumber=order.table.tableNumber if order.table else None,
         status=order.status,
         totalAmount=order.totalAmount,
+        totalCost=getattr(order, 'totalCost', 0.0) or 0.0,
+        grossProfit=getattr(order, 'grossProfit', 0.0) or 0.0,
         customerNotes=order.customerNotes,
         createdAt=order.createdAt,
         orderItems=items
@@ -180,6 +207,8 @@ async def list_orders(
                 menuItemName=oi.menuItem.name if oi.menuItem else None,
                 quantity=oi.quantity,
                 unitPrice=oi.unitPrice,
+                unitCost=getattr(oi, 'unitCost', 0.0) or 0.0,
+                recipeCost=getattr(oi, 'recipeCost', 0.0) or 0.0,
                 subtotal=oi.subtotal
             )
             for oi in o.orderItems
@@ -192,6 +221,8 @@ async def list_orders(
                 tableNumber=o.table.tableNumber if o.table else None,
                 status=o.status,
                 totalAmount=o.totalAmount,
+                totalCost=getattr(o, 'totalCost', 0.0) or 0.0,
+                grossProfit=getattr(o, 'grossProfit', 0.0) or 0.0,
                 customerNotes=o.customerNotes,
                 createdAt=o.createdAt,
                 orderItems=items
@@ -232,6 +263,8 @@ async def update_order_status(
             menuItemName=oi.menuItem.name if oi.menuItem else None,
             quantity=oi.quantity,
             unitPrice=oi.unitPrice,
+            unitCost=getattr(oi, 'unitCost', 0.0) or 0.0,
+            recipeCost=getattr(oi, 'recipeCost', 0.0) or 0.0,
             subtotal=oi.subtotal
         )
         for oi in order.orderItems
@@ -244,6 +277,8 @@ async def update_order_status(
         tableNumber=order.table.tableNumber if order.table else None,
         status=updated.status,
         totalAmount=updated.totalAmount,
+        totalCost=getattr(updated, 'totalCost', 0.0) or 0.0,
+        grossProfit=getattr(updated, 'grossProfit', 0.0) or 0.0,
         customerNotes=updated.customerNotes,
         createdAt=updated.createdAt,
         orderItems=items

@@ -33,3 +33,5 @@ class MenuItemResponse(BaseModel):
     price: float
     imageUrl: Optional[str] = None
     isAvailable: bool
+    recipeCost: float = 0.0
+    profitMargin: float = 0.0

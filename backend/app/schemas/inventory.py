@@ -6,12 +6,14 @@ class InventoryItemCreate(BaseModel):
     currentStock: float
     minStock: float
     unit: str
+    unitCost: float = 0.0
 
 class InventoryItemUpdate(BaseModel):
     name: Optional[str] = None
     currentStock: Optional[float] = None
     minStock: Optional[float] = None
     unit: Optional[str] = None
+    unitCost: Optional[float] = None
 
 class InventoryItemResponse(BaseModel):
     id: str
@@ -20,3 +22,4 @@ class InventoryItemResponse(BaseModel):
     currentStock: float
     minStock: float
     unit: str
+    unitCost: float = 0.0

@@ -13,6 +13,7 @@ export default function AdminInventoryPage() {
   const [name, setName] = useState('');
   const [currentStock, setCurrentStock] = useState('');
   const [minStock, setMinStock] = useState('');
+  const [unitCost, setUnitCost] = useState('');
   const [unit, setUnit] = useState('kg');
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -41,12 +42,14 @@ export default function AdminInventoryPage() {
           name,
           currentStock: parseFloat(currentStock),
           minStock: parseFloat(minStock),
+          unitCost: parseFloat(unitCost || '0'),
           unit,
         }),
       });
       setName('');
       setCurrentStock('');
       setMinStock('');
+      setUnitCost('');
       setMsg('Ingredient added to inventory!');
       loadInventory();
     } catch (err: any) {
@@ -59,6 +62,18 @@ export default function AdminInventoryPage() {
       await apiFetch(`/inventory/${itemId}`, {
         method: 'PATCH',
         body: JSON.stringify({ currentStock: newStock }),
+      });
+      loadInventory();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateUnitCost = async (itemId: string, newCost: number) => {
+    try {
+      await apiFetch(`/inventory/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ unitCost: newCost }),
       });
       loadInventory();
     } catch (err) {
@@ -83,9 +98,9 @@ export default function AdminInventoryPage() {
       <div className="glass-panel p-6 rounded-2xl border border-slate-700/60 space-y-4">
         <h2 className="text-base font-bold text-white flex items-center space-x-2">
           <Plus className="h-5 w-5 text-emerald-400" />
-          <span>Track New Inventory Ingredient</span>
+          <span>Track New Inventory Ingredient & Unit Cost</span>
         </h2>
-        <form onSubmit={handleCreateItem} className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <form onSubmit={handleCreateItem} className="grid grid-cols-1 sm:grid-cols-5 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Item / Ingredient Name</label>
             <input
@@ -93,7 +108,7 @@ export default function AdminInventoryPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Beef Patty, Cheese Slice, Rice"
+              placeholder="e.g. Beef Patty, Cheese, Rice"
               className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500"
             />
           </div>
@@ -125,6 +140,19 @@ export default function AdminInventoryPage() {
           </div>
 
           <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Unit Cost (฿/หน่วย)</label>
+            <input
+              type="number"
+              step="0.01"
+              required
+              value={unitCost}
+              onChange={(e) => setUnitCost(e.target.value)}
+              placeholder="150.00"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 text-emerald-400 font-mono font-bold"
+            />
+          </div>
+
+          <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Measurement Unit</label>
             <select
               value={unit}
@@ -139,12 +167,12 @@ export default function AdminInventoryPage() {
             </select>
           </div>
 
-          <div className="sm:col-span-4">
+          <div className="sm:col-span-5">
             <button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/20"
             >
-              Add Inventory Item
+              Add Inventory Item & Cost
             </button>
           </div>
         </form>
@@ -155,7 +183,7 @@ export default function AdminInventoryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-white flex items-center space-x-2">
             <Package className="h-5 w-5 text-emerald-400" />
-            <span>Live Inventory & Stock Levels ({filteredItems.length})</span>
+            <span>Live Inventory & Unit Costs ({filteredItems.length})</span>
           </h2>
 
           {/* Search Bar with Icon */}
@@ -192,6 +220,7 @@ export default function AdminInventoryPage() {
                 <tr>
                   <th className="px-4 py-3">Ingredient / Item</th>
                   <th className="px-4 py-3">Current Stock</th>
+                  <th className="px-4 py-3">Unit Cost (ต้นทุน/หน่วย)</th>
                   <th className="px-4 py-3">Min Alert Threshold</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-right">Quick Stock Adjustment</th>
@@ -205,6 +234,9 @@ export default function AdminInventoryPage() {
                       <td className="px-4 py-3 font-semibold text-slate-200">{item.name}</td>
                       <td className="px-4 py-3 font-mono font-bold text-white">
                         {item.currentStock} {item.unit}
+                      </td>
+                      <td className="px-4 py-3 font-mono font-bold text-emerald-400">
+                        ฿{(item.unitCost || 0).toFixed(2)} /{item.unit}
                       </td>
                       <td className="px-4 py-3 font-mono text-slate-400">
                         {item.minStock} {item.unit}

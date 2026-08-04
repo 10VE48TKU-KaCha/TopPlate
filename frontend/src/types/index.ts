@@ -33,6 +33,8 @@ export interface MenuItem {
   price: number;
   imageUrl?: string;
   isAvailable: boolean;
+  recipeCost?: number;
+  profitMargin?: number;
 }
 
 export interface InventoryItem {
@@ -42,6 +44,7 @@ export interface InventoryItem {
   currentStock: number;
   minStock: number;
   unit: string;
+  unitCost?: number;
 }
 
 export interface Table {
@@ -58,6 +61,8 @@ export interface OrderItem {
   menuItemName?: string;
   quantity: number;
   unitPrice: number;
+  unitCost?: number;
+  recipeCost?: number;
   subtotal: number;
 }
 
@@ -68,7 +73,30 @@ export interface Order {
   tableNumber?: string;
   status: 'PENDING' | 'COOKING' | 'SERVED' | 'COMPLETED' | 'CANCELLED';
   totalAmount: number;
+  totalCost?: number;
+  grossProfit?: number;
   customerNotes?: string;
   createdAt: string;
   orderItems: OrderItem[];
+}
+
+export interface FinancialsSummary {
+  totalRevenue: number;
+  totalCost: number;
+  grossProfit: number;
+  grossProfitMarginPercent: number;
+  completedOrdersCount: number;
+}
+
+export interface MenuProfitabilityItem {
+  menuItemId: string;
+  menuItemName: string;
+  categoryName?: string;
+  price: number;
+  recipeCost: number;
+  profitPerUnit: number;
+  profitMarginPercent: number;
+  totalQuantitySold: number;
+  totalRevenue: number;
+  totalProfit: number;
 }

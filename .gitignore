@@ -27,6 +27,7 @@ out/
 build/
 dist/
 .vercel/
+*.tsbuildinfo
 
 # Prisma
 backend/prisma/src/

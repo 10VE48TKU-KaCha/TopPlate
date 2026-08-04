@@ -3,23 +3,27 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { Order, InventoryItem } from '@/types';
-import { DollarSign, ShoppingBag, AlertTriangle, TrendingUp } from 'lucide-react';
+import { DollarSign, ShoppingBag, AlertTriangle, TrendingUp, PieChart, Coins } from 'lucide-react';
+import { FinancialsSummary } from '@/types';
 
 export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [financials, setFinancials] = useState<FinancialsSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [ordersData, invData] = await Promise.all([
+        const [ordersData, invData, finData] = await Promise.all([
           apiFetch<Order[]>('/orders'),
           apiFetch<InventoryItem[]>('/inventory'),
+          apiFetch<FinancialsSummary>('/reports/financials').catch(() => null),
         ]);
         setOrders(ordersData);
         setInventory(invData);
+        setFinancials(finData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -29,46 +33,50 @@ export default function AdminDashboardPage() {
     loadData();
   }, []);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== 'CANCELLED' ? o.totalAmount : 0), 0);
+  const totalRevenue = financials?.totalRevenue ?? orders.reduce((sum, o) => sum + (o.status !== 'CANCELLED' ? o.totalAmount : 0), 0);
+  const totalCost = financials?.totalCost ?? orders.reduce((sum, o) => sum + (o.status !== 'CANCELLED' ? (o.totalCost || 0) : 0), 0);
+  const grossProfit = financials?.grossProfit ?? (totalRevenue - totalCost);
+  const marginPct = financials?.grossProfitMarginPercent ?? (totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0);
+
   const totalCompletedOrders = orders.filter((o) => o.status === 'COMPLETED').length;
   const activeOrdersCount = orders.filter((o) => ['PENDING', 'COOKING', 'SERVED'].includes(o.status)).length;
   const lowStockItems = inventory.filter((item) => item.currentStock <= item.minStock);
 
   return (
     <div className="space-y-6">
-      {/* Metrics Row */}
+      {/* Financials & Operations Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass-panel p-5 rounded-2xl border border-slate-700/50 space-y-2">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Sales</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Total Sales (ยอดขาย)</span>
             <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
               <DollarSign className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white">${totalRevenue.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-white">฿{totalRevenue.toFixed(2)}</p>
           <span className="text-[11px] text-emerald-400 font-medium">Revenue across orders</span>
         </div>
 
         <div className="glass-panel p-5 rounded-2xl border border-slate-700/50 space-y-2">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Orders</span>
-            <div className="p-2 bg-blue-500/10 text-blue-400 rounded-xl">
-              <ShoppingBag className="h-5 w-5" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Ingredient Cost (ต้นทุน)</span>
+            <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
+              <Coins className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white">{activeOrdersCount}</p>
-          <span className="text-[11px] text-blue-400 font-medium">Currently in POS / KDS</span>
+          <p className="text-2xl font-bold text-white">฿{totalCost.toFixed(2)}</p>
+          <span className="text-[11px] text-amber-400 font-medium">COGS Recipe Deductions</span>
         </div>
 
         <div className="glass-panel p-5 rounded-2xl border border-slate-700/50 space-y-2">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Completed Orders</span>
-            <div className="p-2 bg-teal-500/10 text-teal-400 rounded-xl">
+            <span className="text-xs font-semibold uppercase tracking-wider">Gross Profit (กำไรสุทธิ)</span>
+            <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl">
               <TrendingUp className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white">{totalCompletedOrders}</p>
-          <span className="text-[11px] text-teal-400 font-medium">Served and settled</span>
+          <p className="text-2xl font-bold text-white">฿{grossProfit.toFixed(2)}</p>
+          <span className="text-[11px] text-cyan-400 font-medium">Margin: {marginPct.toFixed(1)}%</span>
         </div>
 
         <div className="glass-panel p-5 rounded-2xl border border-slate-700/50 space-y-2">

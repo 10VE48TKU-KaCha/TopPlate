@@ -72,21 +72,42 @@ async def list_menu_items(
 ):
     items = await db.menuitem.find_many(
         where={"storeId": tenant.store_id},
-        include={"category": True}
+        include={
+            "category": True,
+            "recipes": {
+                "include": {
+                    "inventoryItem": True
+                }
+            }
+        }
     )
-    return [
-        MenuItemResponse(
-            id=item.id,
-            storeId=item.storeId,
-            categoryId=item.categoryId,
-            name=item.name,
-            description=item.description,
-            price=item.price,
-            imageUrl=item.imageUrl,
-            isAvailable=item.isAvailable
+    res = []
+    for item in items:
+        recipe_cost = 0.0
+        if item.recipes:
+            for r in item.recipes:
+                if r.inventoryItem:
+                    unit_cost = getattr(r.inventoryItem, 'unitCost', 0.0) or 0.0
+                    recipe_cost += r.quantityRequired * unit_cost
+        margin = 0.0
+        if item.price > 0:
+            margin = max(0.0, ((item.price - recipe_cost) / item.price) * 100)
+            
+        res.append(
+            MenuItemResponse(
+                id=item.id,
+                storeId=item.storeId,
+                categoryId=item.categoryId,
+                name=item.name,
+                description=item.description,
+                price=item.price,
+                imageUrl=item.imageUrl,
+                isAvailable=item.isAvailable,
+                recipeCost=round(recipe_cost, 2),
+                profitMargin=round(margin, 1)
+            )
         )
-        for item in items
-    ]
+    return res
 
 @router.post("/items", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_menu_item(
@@ -116,6 +137,7 @@ async def create_menu_item(
         }
     )
 
+    recipe_cost = 0.0
     if payload.recipes:
         for r in payload.recipes:
             await db.menuitemrecipe.create(
@@ -125,6 +147,14 @@ async def create_menu_item(
                     "quantityRequired": r.quantityRequired
                 }
             )
+            inv_item = await db.inventoryitem.find_unique(where={"id": r.inventoryItemId})
+            if inv_item:
+                unit_cost = getattr(inv_item, 'unitCost', 0.0) or 0.0
+                recipe_cost += r.quantityRequired * unit_cost
+
+    margin = 0.0
+    if item.price > 0:
+        margin = max(0.0, ((item.price - recipe_cost) / item.price) * 100)
 
     return MenuItemResponse(
         id=item.id,
@@ -134,5 +164,7 @@ async def create_menu_item(
         description=item.description,
         price=item.price,
         imageUrl=item.imageUrl,
-        isAvailable=item.isAvailable
+        isAvailable=item.isAvailable,
+        recipeCost=round(recipe_cost, 2),
+        profitMargin=round(margin, 1)
     )

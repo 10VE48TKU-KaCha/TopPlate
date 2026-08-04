@@ -110,6 +110,7 @@ model InventoryItem {
   currentStock Float
   minStock     Float
   unit         String
+  unitCost     Float    @default(0.0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -158,6 +159,8 @@ model Order {
   table         Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
   status        OrderStatus @default(PENDING)
   totalAmount   Float
+  totalCost     Float       @default(0.0)
+  grossProfit   Float       @default(0.0)
   customerNotes String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -179,6 +182,8 @@ model OrderItem {
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   quantity   Int
   unitPrice  Float
+  unitCost   Float    @default(0.0)
+  recipeCost Float    @default(0.0)
   subtotal   Float
   createdAt  DateTime @default(now())
 
